@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ShoppingBag, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { loadRazorpayScript, openRazorpayCheckout } from '@/lib/razorpay';
+import { useState } from 'react';
+import { ShoppingBag } from 'lucide-react';
+import UpiCheckoutModal from '@/components/ui/UpiCheckoutModal';
 
 const WHATSAPP_NUMBER = '919585142753';
 
@@ -14,7 +14,6 @@ interface ProductActionsProps {
 function WhatsAppIcon({ className, pulse }: { className?: string; pulse?: boolean }) {
   return (
     <span className={`relative inline-flex items-center justify-center ${className ?? ''}`}>
-      {/* Pulse rings — only when pulse=true */}
       {pulse && (
         <>
           <span className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-60" />
@@ -28,12 +27,8 @@ function WhatsAppIcon({ className, pulse }: { className?: string; pulse?: boolea
   );
 }
 
-type Status = 'idle' | 'loading' | 'success' | 'failed';
-
 export default function ProductActions({ productName, priceStr }: ProductActionsProps) {
-  const [status, setStatus] = useState<Status>('idle');
-  const [paymentId, setPaymentId] = useState('');
-  const [waHighlight, setWaHighlight] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [waHovered, setWaHovered] = useState(false);
 
   // Parse INR price string e.g. "₹350 / 30ml" → 350
@@ -49,133 +44,60 @@ export default function ProductActions({ productName, priceStr }: ProductActions
   );
   const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
 
-  // Auto-remove success state after 5s
-  useEffect(() => {
-    if (status === 'success') {
-      const t = setTimeout(() => setStatus('idle'), 5000);
-      return () => clearTimeout(t);
-    }
-  }, [status]);
-
-  // Auto-remove failed state & highlight WA button
-  useEffect(() => {
-    if (status === 'failed') {
-      setWaHighlight(true);
-      const t = setTimeout(() => {
-        setStatus('idle');
-        setWaHighlight(false);
-      }, 8000);
-      return () => clearTimeout(t);
-    }
-  }, [status]);
-
-  const handleBuyNow = async () => {
-    setStatus('loading');
-    const loaded = await loadRazorpayScript();
-
-    if (!loaded) {
-      setStatus('failed');
-      return;
-    }
-
-    openRazorpayCheckout({
-      productName,
-      amount,
-      onSuccess: (pid) => {
-        setPaymentId(pid);
-        setStatus('success');
-      },
-      onFailure: () => setStatus('failed'),
-      onDismiss: () => setStatus('idle'),
-    });
-  };
-
   return (
-    <div className="flex flex-col gap-3 w-full">
+    <>
+      <div className="flex flex-col gap-3 w-full">
 
-      {/* ── Status banners ─────────────────────────────────────── */}
-      {status === 'success' && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-forest/10 border border-forest/20 text-forest text-sm font-body animate-fade-in">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-forest-mid" />
-          <span>
-            Payment successful! 🎉 ID: <span className="font-mono text-xs">{paymentId}</span>
-            <br />
-            <span className="text-forest/60 text-xs">We will confirm your order via WhatsApp shortly.</span>
-          </span>
+        {/* ── Buttons row ────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row gap-3">
+
+          {/* Buy Now — opens UPI QR modal */}
+          <button
+            id="buy-now-upi"
+            onClick={() => setModalOpen(true)}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-forest text-cream font-semibold rounded-full transition-all duration-300 hover:bg-forest-mid hover:shadow-card focus-visible:ring-2 focus-visible:ring-gold"
+          >
+            <ShoppingBag className="w-5 h-5" aria-hidden="true" />
+            Buy Now
+          </button>
+
+          {/* Order via WhatsApp */}
+          <a
+            id="order-whatsapp-btn"
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Order ${productName} via WhatsApp`}
+            onMouseEnter={() => setWaHovered(true)}
+            onMouseLeave={() => setWaHovered(false)}
+            className="flex-1 inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-full font-semibold text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"
+            style={{
+              background: 'linear-gradient(135deg, #25D366 0%, #1aad52 100%)',
+              boxShadow: waHovered
+                ? '0 8px 28px rgba(37,211,102,0.55), 0 2px 8px rgba(37,211,102,0.3)'
+                : '0 4px 14px rgba(37,211,102,0.35)',
+              transform: waHovered ? 'scale(1.04)' : 'scale(1)',
+            }}
+          >
+            <WhatsAppIcon />
+            <span>Order on WhatsApp</span>
+          </a>
+
         </div>
-      )}
 
-      {status === 'failed' && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm font-body animate-fade-in">
-          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
-          <span>
-            Payment gateway unavailable. <strong>Order safely via WhatsApp ↓</strong>
-          </span>
-        </div>
-      )}
-
-      {/* ── Buttons row ────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row gap-3">
-
-        {/* Buy Now — Razorpay */}
-        <button
-          id="buy-now-razorpay"
-          onClick={handleBuyNow}
-          disabled={status === 'loading' || status === 'success'}
-          className="flex-1 inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-forest text-cream font-semibold rounded-full transition-all duration-300 hover:bg-forest-mid hover:shadow-card focus-visible:ring-2 focus-visible:ring-gold disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {status === 'loading' ? (
-            <>
-              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
-                <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
-              </svg>
-              Processing…
-            </>
-          ) : status === 'success' ? (
-            <>
-              <CheckCircle2 className="w-5 h-5" />
-              Paid ✓
-            </>
-          ) : (
-            <>
-              <ShoppingBag className="w-5 h-5" aria-hidden="true" />
-              Buy Now
-            </>
-          )}
-        </button>
-
-        {/* Order via WhatsApp — animated fallback */}
-        <a
-          id="order-whatsapp-btn"
-          href={waUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Order ${productName} via WhatsApp`}
-          onMouseEnter={() => setWaHovered(true)}
-          onMouseLeave={() => setWaHovered(false)}
-          className="flex-1 inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-full font-semibold text-white transition-all duration-300 focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"
-          style={{
-            background: waHighlight
-              ? 'linear-gradient(135deg, #1aad52 0%, #128c3e 100%)'
-              : 'linear-gradient(135deg, #25D366 0%, #1aad52 100%)',
-            boxShadow: waHovered || waHighlight
-              ? '0 8px 28px rgba(37,211,102,0.55), 0 2px 8px rgba(37,211,102,0.3)'
-              : '0 4px 14px rgba(37,211,102,0.35)',
-            transform: waHovered ? 'scale(1.04)' : waHighlight ? 'scale(1.02)' : 'scale(1)',
-          }}
-        >
-          <WhatsAppIcon pulse={waHighlight} />
-          <span>{waHighlight ? 'Order via WhatsApp ↗' : 'Order on WhatsApp'}</span>
-        </a>
-
+        {/* Safety note */}
+        <p className="text-forest/40 text-xs font-body leading-relaxed">
+          🔒 Pay securely via UPI — GPay, PhonePe, Paytm, BHIM & more · WhatsApp ordering always available
+        </p>
       </div>
 
-      {/* Safety note */}
-      <p className="text-forest/40 text-xs font-body leading-relaxed">
-        🔒 Razorpay secured checkout · UPI, Cards, Net Banking & Wallets accepted · WhatsApp ordering always available as backup
-      </p>
-    </div>
+      {/* UPI Checkout Modal */}
+      <UpiCheckoutModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        productName={productName}
+        amount={amount}
+      />
+    </>
   );
 }
-
