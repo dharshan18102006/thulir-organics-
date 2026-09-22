@@ -14,6 +14,7 @@ import {
 import { getProductById, getComplementaryProducts, products } from "@/data/products";
 import ImagePlaceholder from "@/components/ui/ImagePlaceholder";
 import ProductCard from "@/components/products/ProductCard";
+import ProductActions from "@/components/products/ProductActions";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -205,19 +206,14 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
             {/* CTA */}
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              <ProductActions productName={product.name} priceStr={product.price} />
+              
               <Link
                 href="/problem-finder"
-                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-forest text-cream font-semibold rounded-full hover:bg-forest-mid transition-all duration-300 hover:shadow-card focus-visible:ring-2 focus-visible:ring-gold"
+                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 border-2 border-forest text-forest font-semibold rounded-full hover:bg-forest/5 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-gold"
               >
                 <Sparkles className="w-4.5 h-4.5" aria-hidden="true" />
-                Use Problem Finder
-              </Link>
-              <Link
-                href="/products"
-                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 border-2 border-forest text-forest font-medium rounded-full hover:bg-forest/5 transition-all focus-visible:ring-2 focus-visible:ring-gold"
-              >
-                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-                All Products
+                Problem Finder
               </Link>
             </div>
 
