@@ -24,12 +24,19 @@ export default function ProductActions({ productName, priceStr }: ProductActions
   const [modalOpen, setModalOpen] = useState(false);
   const [waHovered, setWaHovered] = useState(false);
 
-  // Parse INR price string e.g. "₹350 / 30ml" → 350
-  const parseAmount = (price: string) => {
-    const num = parseInt(price.replace(/[^0-9]/g, ''), 10);
-    return isNaN(num) ? 0 : num;
+  // Parse price string e.g. "₹160 / 50g" → amount: 160, unit: "50g"
+  const parsePrice = (price: string) => {
+    const parts = price.split('/');
+    const pricePart = parts[0] || '';
+    const unitPart = parts[1] ? parts[1].trim() : '';
+
+    const numMatch = pricePart.match(/\d+/);
+    const amount = numMatch ? parseInt(numMatch[0], 10) : 0;
+
+    return { amount, unit: unitPart };
   };
-  const amount = parseAmount(priceStr);
+
+  const { amount, unit } = parsePrice(priceStr);
 
   const waMessage = encodeURIComponent(
     `Hi Thulir Organics! 🌿\n\nI'd like to order:\n*${productName}* — ${priceStr}\n\nPlease confirm availability and payment details. Thank you!`
@@ -91,6 +98,8 @@ export default function ProductActions({ productName, priceStr }: ProductActions
         onClose={() => setModalOpen(false)}
         productName={productName}
         amount={amount}
+        unit={unit}
+        priceStr={priceStr}
       />
     </>
   );

@@ -14,6 +14,8 @@ interface UpiCheckoutModalProps {
   onClose: () => void;
   productName: string;
   amount: number;
+  unit?: string;
+  priceStr?: string;
 }
 
 export default function UpiCheckoutModal({
@@ -21,13 +23,25 @@ export default function UpiCheckoutModal({
   onClose,
   productName,
   amount,
+  unit,
+  priceStr,
 }: UpiCheckoutModalProps) {
   const [copied, setCopied] = useState(false);
 
-  const upiUrl = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(MERCHANT_NAME)}&cu=INR&am=${amount}&tn=${encodeURIComponent(`Payment for ${productName}`)}`;
+  // If unit wasn't provided directly, extract from priceStr
+  const resolvedUnit =
+    unit ||
+    (priceStr && priceStr.includes('/') ? priceStr.split('/')[1]?.trim() : '');
+
+  const displayPrice = resolvedUnit ? `₹${amount} / ${resolvedUnit}` : `₹${amount}`;
+
+  const upiUrl =
+    amount > 0
+      ? `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(MERCHANT_NAME)}&cu=INR&am=${amount}&tn=${encodeURIComponent(`Payment for ${productName}`)}`
+      : `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(MERCHANT_NAME)}&cu=INR&tn=${encodeURIComponent(`Payment for ${productName}`)}`;
 
   const waMessage = encodeURIComponent(
-    `Hi Thulir Organics! 🌿\n\nI just paid ₹${amount} for *${productName}* via UPI.\nUPI ID: ${UPI_ID}\n\nAttaching payment screenshot. Please confirm my order. Thank you!`
+    `Hi Thulir Organics! 🌿\n\nI just paid ${displayPrice} for *${productName}* via UPI.\nUPI ID: ${UPI_ID}\n\nAttaching payment screenshot. Please confirm my order. Thank you!`
   );
   const waUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${waMessage}`;
 
@@ -115,14 +129,21 @@ export default function UpiCheckoutModal({
                 >
                   <p className="text-forest/50 text-xs font-body uppercase tracking-wider mb-1">Paying for</p>
                   <p className="font-display font-semibold text-forest text-base leading-snug">{productName}</p>
-                  <motion.p
+                  <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.18, type: 'spring', damping: 16 }}
-                    className="text-4xl font-display font-bold text-earth mt-1"
+                    className="flex items-baseline justify-center gap-1.5 mt-1"
                   >
-                    ₹{amount}
-                  </motion.p>
+                    <span className="text-4xl font-display font-bold text-earth">
+                      ₹{amount}
+                    </span>
+                    {resolvedUnit && (
+                      <span className="text-forest/60 font-body text-base font-semibold">
+                        / {resolvedUnit}
+                      </span>
+                    )}
+                  </motion.div>
                 </motion.div>
 
                 {/* QR Code with animated reveal */}
